@@ -154,7 +154,7 @@ CONFIG_DICT = {
 
 # Enable debug tracing on failure: https://pytorch.org/docs/stable/elastic/errors.html
 @record
-def main(config_name: str):
+def main(config_name: str, use_wandb_for_log: bool = False):
     init_logger()
     task_config = CONFIG_DICT[config_name]
     common_cfg = CommonConfig()
@@ -363,11 +363,17 @@ def main(config_name: str):
         return
 
     checkpoint.load(step=task_config.ckpt_config.load_step)
+    if use_wandb_for_log:
+        enable_wandb = True
+        enable_tensorboard = False
+    else:
+        enable_wandb = False
+        enable_tensorboard = True
     metric_logger = build_metric_logger(
         parallel_dims,
         dump_folder=job_dump_folder,
-        enable_tensorboard=True,
-        enable_wandb=False,
+        enable_tensorboard=enable_tensorboard,
+        enable_wandb=enable_wandb,
         wandb_name=config_name,
     )
 
@@ -634,8 +640,14 @@ if __name__ == "__main__":
         default="block_datav1_step10k_bsz64_single_node",
         type=str,
     )
+    parser.add_argument(
+        "--use_wandb_for_log",
+        action="store_true",
+        default=False,
+    )
     args = parser.parse_args()
     config_name = args.config_name
-    main(config_name)
+    use_wandb_for_log = args.use_wandb_for_log
+    main(config_name, use_wandb_for_log)
     torch.distributed.destroy_process_group()
 
