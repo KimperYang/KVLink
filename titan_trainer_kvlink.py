@@ -89,67 +89,33 @@ from src.training.titan_training_utils import (
     PRETRAINED_MODEL_CKPT_PATH_MAPS,
     SELECTIVE_ACTIVATION_CHECKPOINT_CONFIG,
     bsz64_lr56_steps6k,
-    bsz64_lr56_steps10k,
 )
 from src.training.torchtune_model_checkpointer import load_checkpoint
 
 CONFIG_DICT = {
-    "datav3_step10k_bsz64_reencode_5_selective_ckpt": TitanTrainerConfig(
+    "datav3_step6k_bsz64_link_5_selective_ckpt": TitanTrainerConfig(
         model_name_or_path="meta-llama/Llama-3.2-1B-Instruct",
         tokenizer_path="data/titan_tokenizer/original/tokenizer.model",
-        dataset_version="v3",
+        dataset_version="original",
         seq_len=4096,
         reencode_num=5,
-        job_dump_folder="run_logs/datav3_step10k_bsz64_reencode_5",
-        ckpt_config=COMMON_CHECKPOINT_CONFIG,
-        training_recipe=bsz64_lr56_steps10k,
-        activation_checkpoint=SELECTIVE_ACTIVATION_CHECKPOINT_CONFIG,
-    ),
-    "datav6_step6k_bsz64_reencode_0_selective_ckpt": TitanTrainerConfig(
-        model_name_or_path="meta-llama/Llama-3.2-1B-Instruct",
-        tokenizer_path="data/titan_tokenizer/original/tokenizer.model",
-        dataset_version="v6",
-        seq_len=4096,
-        reencode_num=0,
-        job_dump_folder="run_logs/datav6_step10k_bsz64_reencode_0",
+        job_dump_folder="run_logs/datav3_step6k_bsz64_link_5_selective_ckpt",
         ckpt_config=COMMON_CHECKPOINT_CONFIG,
         training_recipe=bsz64_lr56_steps6k,
         activation_checkpoint=SELECTIVE_ACTIVATION_CHECKPOINT_CONFIG,
     ),
-    "datav6_step6k_bsz64_reencode_1_selective_ckpt": TitanTrainerConfig(
+
+    "datav3_step6k_bsz64_link_5_full_ckpt": TitanTrainerConfig(
         model_name_or_path="meta-llama/Llama-3.2-1B-Instruct",
         tokenizer_path="data/titan_tokenizer/original/tokenizer.model",
-        dataset_version="v6",
-        seq_len=4096,
-        reencode_num=1,
-        job_dump_folder="run_logs/datav6_step10k_bsz64_reencode_1",
-        ckpt_config=COMMON_CHECKPOINT_CONFIG,
-        training_recipe=bsz64_lr56_steps6k,
-        activation_checkpoint=SELECTIVE_ACTIVATION_CHECKPOINT_CONFIG,
-    ),
-    "datav6_step6k_bsz64_reencode_5_selective_ckpt": TitanTrainerConfig(
-        model_name_or_path="meta-llama/Llama-3.2-1B-Instruct",
-        tokenizer_path="data/titan_tokenizer/original/tokenizer.model",
-        dataset_version="v6",
+        dataset_version="original",
         seq_len=4096,
         reencode_num=5,
-        job_dump_folder="run_logs/datav6_step10k_bsz64_reencode_5",
+        job_dump_folder="run_logs/datav3_step6k_bsz64_link_5_selective_ckpt",
         ckpt_config=COMMON_CHECKPOINT_CONFIG,
         training_recipe=bsz64_lr56_steps6k,
-        activation_checkpoint=SELECTIVE_ACTIVATION_CHECKPOINT_CONFIG,
-    ),
-    "datav6_step6k_bsz64_reencode_10_selective_ckpt": TitanTrainerConfig(
-        model_name_or_path="meta-llama/Llama-3.2-1B-Instruct",
-        tokenizer_path="data/titan_tokenizer/original/tokenizer.model",
-        dataset_version="v6",
-        seq_len=4096,
-        reencode_num=10,
-        max_memory_num=20,
-        job_dump_folder="run_logs/datav6_step10k_bsz64_reencode_10",
-        ckpt_config=COMMON_CHECKPOINT_CONFIG,
-        training_recipe=bsz64_lr56_steps6k,
-        activation_checkpoint=SELECTIVE_ACTIVATION_CHECKPOINT_CONFIG,
-    ),
+        activation_checkpoint=FULL_ACTIVATION_CHECKPOINT_CONFIG,
+    )
 }
 
 # Enable debug tracing on failure: https://pytorch.org/docs/stable/elastic/errors.html
