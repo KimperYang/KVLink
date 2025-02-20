@@ -225,7 +225,7 @@ python -m torch.distributed.checkpoint.format_utils dcp_to_torch \
 Once the checkpoint is converted, run the Wikipedia evaluation script:
 
 ```bash
-python scripts/evaluation/wiki_eval.py \
+python scripts/evaluation/hqa_eval.py \
     --ckpt_path checkpoint.pt \
     --batch_size 10 \
     --reencode_num 5 \

@@ -18,8 +18,31 @@ DATA_ORIGINAL: List[DataComponent] = [
     DataComponent(dataset_name="xsum", weight=5.0),
 ]
 
+DATA_NOSUM: List[DataComponent] = [
+    DataComponent(dataset_name="text", weight=21.1),
+    DataComponent(dataset_name="tulu", weight=31.6),
+    DataComponent(dataset_name="sft_mem", weight=26.3),
+    DataComponent(dataset_name="qa", weight=10.5),
+    DataComponent(dataset_name="qa_mem", weight=10.5),
+]
+
+DATA_NOSFTMEM: List[DataComponent] = [
+    DataComponent(dataset_name="text", weight=26.7),
+    DataComponent(dataset_name="tulu", weight=40.0),
+    DataComponent(dataset_name="qa", weight=13.3),
+    DataComponent(dataset_name="qa_mem", weight=13.3),
+    DataComponent(dataset_name="xsum", weight=6.7),
+]
+
+DATA_QAONLY: List[DataComponent] = [
+    DataComponent(dataset_name="qa_mem", weight=100.0)
+]
+
 DATASET_MAPPING = {
     "original": DATA_ORIGINAL,
+    "nosum": DATA_NOSUM,
+    "nosftmem": DATA_NOSFTMEM,
+    "qaonly": DATA_QAONLY
 }
 
 COMMON_CHECKPOINT_CONFIG = CheckpointConfig(
@@ -51,6 +74,14 @@ bsz64_lr56_steps6k =replace(
     max_steps=6000,
     warmup_steps=600,
     eval_every_n_steps=500,
+)
+
+bsz64_lr56_steps600 =replace(
+    DEFUALT_TRAINING_RECIPE,
+    batch_size=64,
+    max_steps=600,
+    warmup_steps=60,
+    eval_every_n_steps=100,
 )
 
 TRAINING_RECIPE_MAPS = {
