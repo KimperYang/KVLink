@@ -11,7 +11,9 @@ python -m torch.distributed.checkpoint.format_utils dcp_to_torch \
 ```
 python scripts/evaluation/hqa_eval.py \
     --ckpt_path checkpoint.pt \
-    --reencode_num 5
+    --batch_size 10 \
+    --reencode_num 5 \
+    --attn_type "blocked" \
 ```
 """
 import argparse
