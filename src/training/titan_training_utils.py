@@ -9,7 +9,6 @@ from src.training.titan_trainer_config_utils import (
     TrainingRecipe,
 )
 
-
 DATA_ORIGINAL: List[DataComponent] = [
     DataComponent(dataset_name="text", weight=20.0),
     DataComponent(dataset_name="tulu", weight=30.0),

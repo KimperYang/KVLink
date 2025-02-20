@@ -598,6 +598,9 @@ def make_segment_mask(
     """Generates attention logit biases given the segment ids.
 
     ... such that positions belonging to different segments cannot attend to each other.
+    This function is based on the implementation of AXLearn from Apple. The original
+        implementation of the `make_segment_mask` can be found in:
+        https://github.com/apple/axlearn/blob/main/axlearn/common/attention_bias.py#L767
 
     Args:
         source_segments: An integer tensor of shape [batch, ..., source_length].

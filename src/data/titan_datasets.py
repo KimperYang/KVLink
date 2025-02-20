@@ -4,7 +4,7 @@ Reference: torchtitan/datasets/hf_dataset.py
 """
 import pickle
 import random
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Dict, List, Tuple
 
 import datasets
 from datasets.distributed import split_dataset_by_node
@@ -14,7 +14,6 @@ from torchdata.stateful_dataloader import StatefulDataLoader
 
 from src.data.titan_preprocessor import (
     SumAttentionPreprocessor,
-    bias_attention_preprocessor,
 )
 from src.data.titan_tokenizer import Tokenizer
 from src.torchtitan.logging import logger
@@ -22,7 +21,7 @@ from src.torchtitan.logging import logger
 
 def load_data_and_process_fn(
     data_component_name: str,
-    preprocessor: Union[SumAttentionPreprocessor, bias_attention_preprocessor],
+    preprocessor: SumAttentionPreprocessor,
     training: bool = True,
 ) -> Tuple[datasets.IterableDataset, datasets.Dataset]:
     """
@@ -93,7 +92,7 @@ class HuggingFaceDataset(IterableDataset, Stateful):
         self,
         dataset_name: str,
         tokenizer: Tokenizer,
-        preprocessor: Union[bias_attention_preprocessor, bias_attention_preprocessor],
+        preprocessor: SumAttentionPreprocessor,
         seq_len: int = 4096,
         world_size: int = 1,
         rank: int = 0,
