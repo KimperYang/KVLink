@@ -252,7 +252,7 @@ python scripts/evaluation/hqa_eval.py \
     --batch_size 10 \
     --reencode_num 5 \
     --attn_type "blocked" \
-    --hf
+    --hf True
 ```
 
 ## Acknowledgement
