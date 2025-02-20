@@ -29,13 +29,16 @@ pip install -e ./
 
 #### 2. Data Preprocessing
 
-We provide the code for data preprocessing under `scripts/data_process/`. The running commands and documents are availabel in the header of each file. For example, you can preprocess the pre-training data using:
+We provide the code for data preprocessing under `scripts/data_process/`. The running commands and documents are availabel in the header of each file. You can preprocess the training data using:
 
 ```
 python scripts/data_process/fineweb.py --num_samples=10000000 --min_length_for_memory=2048 --validation_size=3000
+python scripts/data_process/daring_anteater.py --max_length=4096 --validation_size=2000
+python scripts/data_process/tulu.py --max_length=4096 --validation_size=2000
+python scripts/data_process/sum.py --max_length=4096 --validation_size=1000
 ```
 
-For the QA data, you can access the original 2WikiMultiHopQA data using
+For preprocessing the QA data, you can first access the original 2WikiMultiHopQA data using
 
 ```
 git lfs install 
@@ -53,6 +56,12 @@ After that, run the following script to retrieve the relevant QA document using 
 
 ```
 python scripts/data_process/gpt_answer.py
+```
+
+Lastly, run the preprocessing script as other datasets
+
+```
+python scripts/data_process/block_qa.py --max_length=4096 --validation_size=2000
 ```
 
 ### Implementation
@@ -130,13 +139,23 @@ python -m torch.distributed.checkpoint.format_utils dcp_to_torch \
     torchtitan/outputs/checkpoint/step-1000 checkpoint.pt
 ```
 
-Then run evaluation:
+Then run the evaluation using,
+
+```
+python scripts/evaluation/wiki_eval.py \
+    --ckpt_path checkpoint.pt \
+    --batch_size 10 \
+    --reencode_num 5 \
+    --attn_type "blocked" \
+```
+
+Note, for the evaluation of NQ, one extra 'pos' argument is needed (from 0 to 9) to specify the golden document index.
 
 ```
 python scripts/evaluation/nq_eval.py \
     --ckpt_path checkpoint.pt \
-    --pos 1
+    --batch_size 10 \
+    --pos 0 \
+    --reencode_num 5 \
+    --attn_type "blocked" \
 ```
-
-
-
