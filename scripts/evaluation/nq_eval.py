@@ -32,7 +32,7 @@ from safetensors import safe_open
 from torch.utils.data import DataLoader
 from torchtune.models.convert_weights import tune_to_hf
 from tqdm.auto import tqdm as auto_tqdm
-from transformers import AutoTokenizer, GenerationConfig, LlamaForCausalLM
+from transformers import AutoTokenizer, GenerationConfig, LlamaForCausalLM, AutoModelForCausalLM
 
 from src.common import move_to_target_device
 from src.data.titan_preprocessor import LLaMA32Tokenizer, make_segment_mask
@@ -54,6 +54,7 @@ parser.add_argument(
     choices=["standard", "blocked"],
 )
 parser.add_argument("--reencode_num", type=int, default=5, help="Number of the link tokens.")
+parser.add_argument("--hf", type=bool, default=False, help="Use HuggingFace checkpoints.")
 
 args = parser.parse_args()
 
@@ -140,11 +141,10 @@ def preprocess_fn(example: Dict[str, str], tokenizer: LLaMA32Tokenizer, target_p
 
     for mem_id, st in enumerate(memory_list):
         tem_id = tokenizer(st, add_special_tokens = False)["input_ids"]
+        segment_ids = segment_ids + [mem_id + 1] * len(tem_id) + [0] * reencode_num
 
         for sub_idx in range(reencode_num):
             tem_id = tem_id + [special_token_start + reencode_num * mem_id + sub_idx]
-
-        segment_ids = segment_ids + [mem_id + 1] * len(tem_id) + [0] * reencode_num
         input_ids = input_ids + tem_id
 
     new_prompt = question
@@ -192,6 +192,7 @@ def main():
     pos = args.pos
     reencode_num: int  = args.reencode_num
     batch_size: int = args.batch_size
+    hf: bool = args.hf
     device = torch.device("cuda")
 
     mem_start = 128254
@@ -221,6 +222,8 @@ def main():
 
     if args.ckpt_path is None:
         print("Will NOT load fine-tuned models!")
+    elif hf:
+        model = AutoModelForCausalLM.from_pretrained(args.ckpt_path, torch_dtype=torch.bfloat16)
     else:
         state_dict = load_model_weights(ckpt_path)
         model.load_state_dict(state_dict, strict=False)

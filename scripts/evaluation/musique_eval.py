@@ -31,7 +31,7 @@ from safetensors import safe_open
 from torch.utils.data import DataLoader
 from torchtune.models.convert_weights import tune_to_hf
 from tqdm.auto import tqdm as auto_tqdm
-from transformers import AutoTokenizer, GenerationConfig, LlamaForCausalLM
+from transformers import AutoTokenizer, GenerationConfig, LlamaForCausalLM, AutoModelForCausalLM
 
 from src.common import move_to_target_device
 from src.data.titan_preprocessor import LLaMA32Tokenizer, make_segment_mask
@@ -52,6 +52,7 @@ parser.add_argument(
     choices=["standard", "blocked"],
 )
 parser.add_argument("--reencode_num", type=int, default=5, help="Number of the link tokens.")
+parser.add_argument("--hf", type=bool, default=False, help="Use HuggingFace checkpoints.")
 
 args = parser.parse_args()
 
@@ -117,7 +118,7 @@ def preprocess_fn(example: Dict[str, str], tokenizer: LLaMA32Tokenizer, reencode
     question = example["question"]
     memory_list = []
 
-    for j in range(0,10):
+    for j in range(len(example['paragraphs'])):
         title = example['paragraphs'][j]['title']
         text = example['paragraphs'][j]['paragraph_text']
         memory_list.append(f"Document [{j+1}](Title: {title}) {text}\n")
@@ -128,11 +129,10 @@ def preprocess_fn(example: Dict[str, str], tokenizer: LLaMA32Tokenizer, reencode
 
     for mem_id, st in enumerate(memory_list):
         tem_id = tokenizer(st, add_special_tokens = False)["input_ids"]
-
+        segment_ids = segment_ids + [mem_id + 1] * len(tem_id) + [0] * reencode_num
+    
         for sub_idx in range(reencode_num):
             tem_id = tem_id + [special_token_start + reencode_num * mem_id + sub_idx]
-
-        segment_ids = segment_ids + [mem_id + 1] * len(tem_id) + [0] * reencode_num
         input_ids = input_ids + tem_id
 
     new_prompt = question
@@ -180,6 +180,7 @@ def main():
     reencode_num: int  = args.reencode_num
     batch_size: int = args.batch_size
     device = torch.device("cuda")
+    hf: bool = args.hf
 
     mem_start = 128254
     mem_end = 128255
@@ -203,6 +204,8 @@ def main():
 
     if args.ckpt_path is None:
         print("Will NOT load fine-tuned models!")
+    elif hf:
+        model = AutoModelForCausalLM.from_pretrained(args.ckpt_path, torch_dtype=torch.bfloat16)
     else:
         state_dict = load_model_weights(ckpt_path)
         model.load_state_dict(state_dict, strict=False)
@@ -224,7 +227,7 @@ def main():
         ),
     )
 
-    total_num = 500
+    total_num = len(dataset)
     dataset = dataset.select(np.arange(total_num))
     correct_num = 0
     res_list = []
@@ -336,4 +339,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

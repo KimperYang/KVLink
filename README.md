@@ -157,3 +157,14 @@ python scripts/evaluation/nq_eval.py \
     --reencode_num 5 \
     --attn_type "blocked" \
 ```
+
+If a HuggingFace pretrained model is used, the argument 'hf' should be added. For example,
+
+```
+python scripts/evaluation/hqa_eval.py \
+    --ckpt_path "meta-llama/Llama-3.2-1B-Instruct" \
+    --batch_size 10 \
+    --reencode_num 5 \
+    --attn_type "blocked" \
+    --hf
+```
