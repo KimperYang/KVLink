@@ -4,11 +4,8 @@ This is the official implementation of the paper **"KVLink: Accelerating LLMs vi
 
 ## **Table of Contents**  
 1. [Preparation](#preparation)  
-   - [Virtual Environment Setup](#virtual-environment-setup)  
-   - [Data Preprocessing](#data-preprocessing)  
-     - [Pre-training Data Preparation](#pre-training-data-preparation)  
-     - [SFTMulti-turn ConversationSummarization Data](#sftmulti-turn-conversationsummarization-data)  
-     - [QA Data Preparation](#qa-data-preparation)  
+   - [Virtual Environment Setup](#virtual-environment-setup)
+   - [Data Preprocessing](#data-preprocessing) 
 2. [Implementation](#implementation)  
 3. [Model Training](#model-training)  
    - [Configuration Management](#configuration-management)  
@@ -28,6 +25,7 @@ This is the official implementation of the paper **"KVLink: Accelerating LLMs vi
 
 ## Preparation
 
+<a id="virtual-environment-setup"></a>
 ### 1. Virtual Environment Setup
 
 The training code is built upon [torchtitan](https://github.com/pytorch/torchtitan) and [torchtune](https://github.com/pytorch/torchtune), which provide optimized implementations to improve training efficiency.
@@ -55,6 +53,7 @@ To set up the environment, follow these steps:
 
 
 
+<a id="data-preprocessing"></a>
 ### 2. Data Preprocessing
 
 The data preprocessing scripts are provided under the [`scripts/data_process/`](scripts/data_process/) directory. Each script contains documentation and usage instructions in its header.
@@ -116,6 +115,7 @@ The **special attention mask** (illustrated in **Figure 2** of the paper) is imp
 
 The training process is primarily based on **torchtitan** (see [`titan_trainer_kvlink.py`](titan_trainer_kvlink.py)).
 
+<a id="configuration-management"></a>
 ### 0. Configuration Management
 Instead of using external configuration files in `YAML` or `JSON` format, or setting hyperparameters via command-line arguments, we define all training configurations directly in the code. Our rationale is that hyperparameters coud be the same important as implementation as the model architecture and algorithms. Also, defining them in code improves readability and maintainability by keeping all experiment settings in one place without relying on external config files or command-line arguments.
 
@@ -137,6 +137,7 @@ This `config_name` maps to a predefined set of hyperparameters for a specific ex
 
 This approach ensures that each experiment remains reproducible and well-documented within the codebase.
 
+<a id="download-the-tokenizer-and-model"></a>
 ### **1. Download the Tokenizer and Model**
 
 #### **Download the Tokenizer**
@@ -166,6 +167,7 @@ Similarly, for the `3B` model, replace `meta-llama/Llama-3.2-1B-Instruct` with `
 
 ---
 
+<a id="run-the-training"></a>
 ### **2. Run the Training**
 Run the following script to start training:
 
@@ -181,6 +183,7 @@ torchrun --nproc_per_node=8 --rdzv_backend c10d --rdzv_endpoint="localhost:0" \
 
 ---
 
+<a id="logging-and-visualization"></a>
 ### **3. Logging and Visualization**
 By default, training logs are saved using **TensorBoard** in `{job_dump_folder}` (as defined in the training config). 
 
