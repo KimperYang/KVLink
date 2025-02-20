@@ -74,16 +74,14 @@ The `cross-document reconnection with summary tokens` is impmented in `src/data/
 
 ### Model Training
 
-Our trainer is mainly based on torchtitan (see `titan_trainer_kvlink.py`). All configurations are also listed in the same file. For example, the config name `datav6_step6k_bsz64_reencode_5_selective_ckpt` corresponds to the following training:
+Our trainer is mainly based on torchtitan (see `titan_trainer_kvlink.py`). All configurations are also listed in the same file. For example, the config name `data_original_step6k_bsz64_link_5_selective_ckpt` corresponds to the following training:
 
-- data mixture version v6 (data mixture is defined in `src/training/titan_training_utils.py`, DATASET_MAPPING)
+- original data mixture (data mixture is defined in `src/training/titan_training_utils.py`, DATASET_MAPPING)
 - training steps 6000
 - batch size 64
 - KVLink 5
 - apply selective gradient checkpinting to save memory
 - learning rate 5e-6
-
-
 
 Before you train the model, first download the tokenizer and the model:
 

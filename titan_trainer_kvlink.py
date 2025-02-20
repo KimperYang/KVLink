@@ -93,7 +93,7 @@ from src.training.titan_training_utils import (
 from src.training.torchtune_model_checkpointer import load_checkpoint
 
 CONFIG_DICT = {
-    "datav3_step6k_bsz64_link_5_selective_ckpt": TitanTrainerConfig(
+    "data_original_step6k_bsz64_link_5_selective_ckpt": TitanTrainerConfig(
         model_name_or_path="meta-llama/Llama-3.2-1B-Instruct",
         tokenizer_path="data/titan_tokenizer/original/tokenizer.model",
         dataset_version="original",
@@ -105,7 +105,7 @@ CONFIG_DICT = {
         activation_checkpoint=SELECTIVE_ACTIVATION_CHECKPOINT_CONFIG,
     ),
 
-    "datav3_step6k_bsz64_link_5_full_ckpt": TitanTrainerConfig(
+    "data_original_step6k_bsz64_link_5_full_ckpt": TitanTrainerConfig(
         model_name_or_path="meta-llama/Llama-3.2-1B-Instruct",
         tokenizer_path="data/titan_tokenizer/original/tokenizer.model",
         dataset_version="original",
