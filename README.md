@@ -1,8 +1,8 @@
-## KVLink: Accelerating LLMs via Efficient KV Cache Reuse  
+# KVLink: Accelerating LLMs via Efficient KV Cache Reuse  
 
 This is the official implementation of the paper **"KVLink: Accelerating LLMs via Efficient KV Cache Reuse."**
 
-### **Table of Contents**  
+## **Table of Contents**  
 1. [Preparation](#preparation)  
    - [Virtual Environment Setup](#virtual-environment-setup)  
    - [Data Preprocessing](#data-preprocessing)  
@@ -26,9 +26,9 @@ This is the official implementation of the paper **"KVLink: Accelerating LLMs vi
 
 ---
 
-### Preparation
+## Preparation
 
-#### 1. Virtual Environment Setup
+### 1. Virtual Environment Setup
 
 The training code is built upon [torchtitan](https://github.com/pytorch/torchtitan) and [torchtune](https://github.com/pytorch/torchtune), which provide optimized implementations to improve training efficiency.
 
@@ -55,18 +55,18 @@ To set up the environment, follow these steps:
 
 
 
-#### 2. Data Preprocessing
+### 2. Data Preprocessing
 
 The data preprocessing scripts are provided under the [`scripts/data_process/`](scripts/data_process/) directory. Each script contains documentation and usage instructions in its header.
 
-##### 2.1 Pre-training Data Preparation
+#### 2.1 Pre-training Data Preparation
 To preprocess the pre-training data, run:
 
 ```bash
 python scripts/data_process/fineweb.py --num_samples=10000000 --min_length_for_memory=2048 --validation_size=3000
 ```
 
-##### 2.2 SFT/Multi-turn Conversation/Summarization Data
+#### 2.2 SFT/Multi-turn Conversation/Summarization Data
 
 ```bash
 python scripts/data_process/daring_anteater.py --max_length=4096 --validation_size=2000
@@ -74,7 +74,7 @@ python scripts/data_process/tulu.py --max_length=4096 --validation_size=2000
 python scripts/data_process/sum.py --max_length=4096 --validation_size=1000
 ```
 
-##### 2.3 QA Data Preparation
+#### 2.3 QA Data Preparation
 
 Our QA training data is built upon the **2WikiMultiHopQA** and **TriviaQA** datasets. To access the original **2WikiMultiHopQA** dataset, use:
 
@@ -104,7 +104,7 @@ python scripts/data_process/block_qa.py --max_length=4096 --validation_size=2000
 
 ---
 
-### Implementation
+## Implementation
 
 The **cross-document reconnection with summary tokens** is implemented in [`src/data/titan_preprocess.py`](src/data/titan_preprocess.py), specifically at **Line 21**, where the preprocessor adds summary tokens to each context segment.
 
@@ -112,11 +112,11 @@ The **special attention mask** (illustrated in **Figure 2** of the paper) is imp
 
 ---
 
-### Model Training
+## Model Training
 
 The training process is primarily based on **torchtitan** (see [`titan_trainer_kvlink.py`](titan_trainer_kvlink.py)).
 
-#### 0. Configuration Management
+### 0. Configuration Management
 Instead of using external configuration files in `YAML` or `JSON` format, or setting hyperparameters via command-line arguments, we define all training configurations directly in the code. Our rationale is that hyperparameters coud be the same important as implementation as the model architecture and algorithms. Also, defining them in code improves readability and maintainability by keeping all experiment settings in one place without relying on external config files or command-line arguments.
 
 
@@ -137,9 +137,9 @@ This `config_name` maps to a predefined set of hyperparameters for a specific ex
 
 This approach ensures that each experiment remains reproducible and well-documented within the codebase.
 
-#### **1. Download the Tokenizer and Model**
+### **1. Download the Tokenizer and Model**
 
-##### **Download the Tokenizer**
+#### **Download the Tokenizer**
 Run the following command to download the tokenizer:
 
 ```bash
@@ -152,7 +152,7 @@ python src/data/titan_download_tokenizer.py \
 
 To use `Llama-3.2-3B-Instruct`, replace `repo_id` with `meta-llama/Llama-3.2-3B-Instruct`
 
-##### **Download the Model**
+#### **Download the Model**
 Run the following command to download the model:
 
 ```bash
@@ -166,7 +166,7 @@ Similarly, for the `3B` model, replace `meta-llama/Llama-3.2-1B-Instruct` with `
 
 ---
 
-#### **2. Run the Training**
+### **2. Run the Training**
 Run the following script to start training:
 
 ```bash
@@ -181,12 +181,12 @@ torchrun --nproc_per_node=8 --rdzv_backend c10d --rdzv_endpoint="localhost:0" \
 
 ---
 
-#### **3. Logging and Visualization**
+### **3. Logging and Visualization**
 By default, training logs are saved using **TensorBoard** in `{job_dump_folder}` (as defined in the training config). 
 
 To enable **Weights & Biases (`wandb`)**, add the flag `--use_wandb_for_log` to the training command.
 
-##### **View TensorBoard Logs on a Remote Server**
+#### **View TensorBoard Logs on a Remote Server**
 Run the following command on your local machine:
 
 ```bash
@@ -203,11 +203,11 @@ Now, open **[http://localhost:6006/](http://localhost:6006/)** in your local bro
 
 ---
 
-### Evaluation
+## Evaluation
 
 The evaluation code is available in [`scripts/evaluation`](scripts/evaluation).
 
-#### **Convert Model Checkpoint to PyTorch Format**
+### **Convert Model Checkpoint to PyTorch Format**
 Since `torchtitan` saves models in **DCP format**, you need to convert the saved checkpoint to **PyTorch format** before evaluation. Use the following command:
 
 ```bash
@@ -218,7 +218,7 @@ python -m torch.distributed.checkpoint.format_utils dcp_to_torch \
 - `/path/to/checkpoint/step-1000` – Directory containing the saved `DCP` checkpoints.  
 - `/save_path/to/pytorch_checkpoint.pt` – Destination path for the converted PyTorch model.
 
-#### **Run Wikipedia Evaluation**
+### **Run Wikipedia Evaluation**
 Once the checkpoint is converted, run the Wikipedia evaluation script:
 
 ```bash
@@ -229,7 +229,7 @@ python scripts/evaluation/wiki_eval.py \
     --attn_type "blocked"
 ```
 
-#### **Run NQ Evaluation**
+### **Run NQ Evaluation**
 For **Natural Questions (NQ) evaluation**, an additional `--pos` argument (ranging from 0 to 9) is required to specify the golden document index:
 
 ```bash
@@ -242,7 +242,7 @@ python scripts/evaluation/nq_eval.py \
 ```
 
 
-### Acknowledgement
+## Acknowledgement
 
 Our training script is mainly based on torchtitan and torchtune:
 
