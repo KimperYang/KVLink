@@ -12,7 +12,7 @@ from typing import Any, Dict, List
 
 import pandas as pd
 import torch
-import tqdm
+from tqdm import tqdm
 from dotenv import load_dotenv
 from openai import AzureOpenAI
 from transformers import AutoModel, AutoTokenizer, PreTrainedModel, PreTrainedTokenizer
@@ -124,7 +124,7 @@ def generate_answer(dataset: List):
         user_msg = ""
         data = dataset[i]
         for j in range(len(data["documents"])):
-            user_msg += f"Document [{j+1}](Title: {data["documents"][j]['title']}) {data["documents"][j]['text']}\n"
+            user_msg += f"Document [{j+1}](Title: {data['documents'][j]['title']}) {data['documents'][j]['text']}\n"
         user_msg += data["question"]
 
         message = [{"role":"system", "content":system_msg},{"role":"user", "content":user_msg}]
