@@ -255,7 +255,7 @@ python scripts/evaluation/hqa_eval.py \
     --hf True
 ```
 
-The KVLink5 models in the paper are available at [KVLink5-1B]("https://huggingface.co/Shiyu-Lab/Llama1B-KVLink5") and [KVLink5-3B]("https://huggingface.co/Shiyu-Lab/Llama3B-KVLink5").
+The KVLink5 models in the paper are available at [KVLink5-1B](https://huggingface.co/Shiyu-Lab/Llama1B-KVLink5) and [KVLink5-3B](https://huggingface.co/Shiyu-Lab/Llama3B-KVLink5).
 
 ## Acknowledgement
 
