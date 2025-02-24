@@ -17,7 +17,7 @@ This is the official implementation of the paper **"KVLink: Accelerating LLMs vi
      - [View TensorBoard Logs on a Remote Server](#view-tensorboard-logs-on-a-remote-server)  
 4. [Evaluation](#evaluation)  
    - [Convert Model Checkpoint to PyTorch Format](#convert-model-checkpoint-to-pytorch-format)  
-   - [Run Wikipedia Evaluation](#run-wikipedia-evaluation)  
+   - [Run Evaluation](#run-evaluation)  
    - [Run NQ Evaluation](#run-nq-evaluation)  
 5. [Acknowledgement](#acknowledgement)
 
