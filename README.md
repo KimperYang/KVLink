@@ -221,7 +221,7 @@ python -m torch.distributed.checkpoint.format_utils dcp_to_torch \
 - `/path/to/checkpoint/step-1000` – Directory containing the saved `DCP` checkpoints.  
 - `/save_path/to/pytorch_checkpoint.pt` – Destination path for the converted PyTorch model.
 
-### **Run Wikipedia Evaluation**
+### **Run Evaluation**
 Once the checkpoint is converted, run the Wikipedia evaluation script:
 
 ```bash
