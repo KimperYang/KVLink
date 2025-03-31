@@ -90,7 +90,8 @@ from src.training.titan_training_utils import (
     PRETRAINED_MODEL_CKPT_PATH_MAPS,
     SELECTIVE_ACTIVATION_CHECKPOINT_CONFIG,
     bsz64_lr56_steps6k,
-    bsz64_lr56_steps600,
+    bsz32_lr56_steps6k,
+    bsz16_lr56_steps6k,
 )
 from src.training.torchtune_model_checkpointer import load_checkpoint
 
@@ -117,7 +118,31 @@ CONFIG_DICT = {
         ckpt_config=COMMON_CHECKPOINT_CONFIG,
         training_recipe=bsz64_lr56_steps6k,
         activation_checkpoint=FULL_ACTIVATION_CHECKPOINT_CONFIG,
-    )
+    ),
+
+    "data_original_step6k_bsz32_link_5_full_ckpt": TitanTrainerConfig(
+        model_name_or_path="Qwen/Qwen2.5-14B-Instruct",
+        tokenizer_path="Qwen/Qwen2.5-14B-Instruct",
+        dataset_version="original",
+        seq_len=4096,
+        reencode_num=5,
+        job_dump_folder="run_logs/data_original_step6k_bsz64_link_5_full_ckpt",
+        ckpt_config=COMMON_CHECKPOINT_CONFIG,
+        training_recipe=bsz32_lr56_steps6k,
+        activation_checkpoint=FULL_ACTIVATION_CHECKPOINT_CONFIG,
+    ),
+
+    "data_original_step6k_bsz16_link_5_full_ckpt": TitanTrainerConfig(
+        model_name_or_path="Qwen/Qwen2.5-14B-Instruct",
+        tokenizer_path="Qwen/Qwen2.5-14B-Instruct",
+        dataset_version="original",
+        seq_len=4096,
+        reencode_num=5,
+        job_dump_folder="run_logs/data_original_step6k_bsz64_link_5_full_ckpt",
+        ckpt_config=COMMON_CHECKPOINT_CONFIG,
+        training_recipe=bsz16_lr56_steps6k,
+        activation_checkpoint=FULL_ACTIVATION_CHECKPOINT_CONFIG,
+    ),
 }
 
 # Enable debug tracing on failure: https://pytorch.org/docs/stable/elastic/errors.html

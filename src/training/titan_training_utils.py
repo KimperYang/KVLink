@@ -76,6 +76,22 @@ bsz64_lr56_steps6k =replace(
     eval_every_n_steps=1000,
 )
 
+bsz32_lr56_steps6k =replace(
+    DEFUALT_TRAINING_RECIPE,
+    batch_size=32,
+    max_steps=6000,
+    warmup_steps=600,
+    eval_every_n_steps=1000,
+)
+
+bsz16_lr56_steps6k =replace(
+    DEFUALT_TRAINING_RECIPE,
+    batch_size=16,
+    max_steps=6000,
+    warmup_steps=600,
+    eval_every_n_steps=1000,
+)
+
 bsz64_lr56_steps600 =replace(
     DEFUALT_TRAINING_RECIPE,
     batch_size=64,
