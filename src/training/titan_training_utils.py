@@ -104,5 +104,12 @@ SELECTIVE_ACTIVATION_CHECKPOINT_CONFIG = ActivationCheckpoint(
 
 PRETRAINED_MODEL_CKPT_PATH_MAPS = {
     "meta-llama/Llama-3.2-1B-Instruct": "model_cache/Llama-3.2-1B-Instruct/model.safetensors",
-    "Qwen/Qwen2.5-14B-Instruct": "model_cache/Qwen2.5-14B-Instruct"
+    "Qwen/Qwen2.5-14B-Instruct": ["model_cache/Qwen2.5-14B-Instruct/model-00001-of-00008.safetensors",
+                                  "model_cache/Qwen2.5-14B-Instruct/model-00002-of-00008.safetensors",
+                                  "model_cache/Qwen2.5-14B-Instruct/model-00003-of-00008.safetensors",
+                                  "model_cache/Qwen2.5-14B-Instruct/model-00004-of-00008.safetensors",
+                                  "model_cache/Qwen2.5-14B-Instruct/model-00005-of-00008.safetensors",
+                                  "model_cache/Qwen2.5-14B-Instruct/model-00006-of-00008.safetensors",
+                                  "model_cache/Qwen2.5-14B-Instruct/model-00007-of-00008.safetensors",
+                                  "model_cache/Qwen2.5-14B-Instruct/model-00008-of-00008.safetensors"]
 }
