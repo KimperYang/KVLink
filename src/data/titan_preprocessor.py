@@ -808,9 +808,9 @@ class Qwen_SumAttentionPreprocessor():
         input_ids = input_ids + user_input_ids
         segment_ids = segment_ids + [0] * len(user_input_ids)
 
-        ans_id = self.tokenizer(example["generated"], add_special_tokens=False)["input_ids"]
-        input_ids += ans_id + [self.eot_token_id]
-        segment_ids += [0] * (len(ans_id) + 1)
+        ans_id = self.tokenizer(example["generated"], add_special_tokens=False)["input_ids"] + [self.eot_token_id]
+        input_ids += ans_id
+        segment_ids += [0] * len(ans_id)
 
         ans_len = len(ans_id)
         input_len = len(input_ids)
@@ -841,8 +841,8 @@ class Qwen_SumAttentionPreprocessor():
         user_input_ids = [self.eot_token_id] + self.user_start_token_ids + self.tokenizer(example['question'], add_special_tokens=False)["input_ids"] + [self.eot_token_id] + self.assistant_start_token_ids
         input_ids += user_input_ids
 
-        ans_id = self.tokenizer(example['generated'], add_special_tokens=False)["input_ids"]
-        input_ids += ans_id + [self.eot_token_id]
+        ans_id = self.tokenizer(example['generated'], add_special_tokens=False)["input_ids"] + [self.eot_token_id]
+        input_ids += ans_id
 
         ans_len = len(ans_id)
         input_len = len(input_ids)
@@ -937,10 +937,10 @@ class Qwen_SumAttentionPreprocessor():
         ans_id = self.tokenizer(
             example['summary'],
             add_special_tokens=False,
-        )["input_ids"]
+        )["input_ids"] + [self.eot_token_id]
         assistant_input_ids = (
             [self.mem_end, self.eot_token_id] + self.assistant_start_token_ids
-            + ans_id + [self.eot_token_id]
+            + ans_id
         )
 
         input_ids = input_ids + assistant_input_ids
