@@ -202,7 +202,6 @@ def main(config_name: str, use_wandb_for_log: bool = False):
     )
 
     old_num_tokens, _ = model.tok_embeddings.weight.shape
-    logger.info(model.tok_embeddings.weight.shape)
     special_token_start = old_num_tokens
 
     model.tok_embeddings = resize_token_embeddings(model.tok_embeddings, task_config.reencode_num * 50 + 2)

@@ -20,8 +20,7 @@ def resize_token_embeddings(old_tok_embeddings, num_new_tokens):
 
 def resize_output_projection(old_output_proj, num_new_tokens):
     # old_output_proj: nn.Linear of shape [embed_dim, old_vocab_size]
-    embedding_dim, old_num_tokens = old_output_proj.weight.shape
-    print(embedding_dim, old_num_tokens)
+    old_num_tokens, embedding_dim = old_output_proj.weight.shape
     new_num_tokens = old_num_tokens + num_new_tokens
 
     new_output_proj = nn.Linear(
