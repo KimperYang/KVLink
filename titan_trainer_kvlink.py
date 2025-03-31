@@ -212,7 +212,7 @@ def main(config_name: str, use_wandb_for_log: bool = False):
             model=model,
             full_sd=state_dict,
             device=device_type,
-            is_rank_zero=is_rank_0,
+            # is_rank_zero=is_rank_0,
             strict=True,
         )
 
