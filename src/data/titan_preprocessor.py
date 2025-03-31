@@ -689,8 +689,7 @@ class Qwen_SumAttentionPreprocessor():
             [-100] * (seq_len - ans_len) + all_conversation_texts_ids[-1] + [self.eot_token_id]
         )
 
-
-
+        assert len(input_ids) == len(labels) and len(segment_ids) == len(input_ids), "process_sftmem: Length mismatch between input_ids, labels, and segment_ids."
         return {
             "input_ids": input_ids,
             "labels": labels,
@@ -816,7 +815,7 @@ class Qwen_SumAttentionPreprocessor():
         input_len = len(input_ids)
 
         labels = [-100] * (input_len - ans_len) + ans_id
-
+        assert len(input_ids) == len(labels) and len(segment_ids) == len(input_ids), "process_qamem: Length mismatch between input_ids, labels, and segment_ids."
         return {
             "input_ids": input_ids,
             "labels": labels,
@@ -850,7 +849,7 @@ class Qwen_SumAttentionPreprocessor():
         labels = [-100] * (input_len - ans_len) + ans_id
 
         segment_ids = [0] * len(input_ids)
-
+        assert len(input_ids) == len(labels) and len(segment_ids) == len(input_ids), "process_qa: Length mismatch between input_ids, labels, and segment_ids."
         return {
             "input_ids": input_ids,
             "labels": labels,
@@ -909,6 +908,8 @@ class Qwen_SumAttentionPreprocessor():
                 input_ids += assist_msg_input_ids
 
         segment_ids = [0] * len(input_ids)
+
+        assert len(input_ids) == len(labels) and len(segment_ids) == len(input_ids), "process_tulu: Length mismatch between input_ids, labels, and segment_ids."
         return {
             "input_ids": input_ids,
             "labels": labels,
@@ -947,6 +948,7 @@ class Qwen_SumAttentionPreprocessor():
         labels = [-100] * (len(input_ids) - len(ans_id)) + ans_id
         segment_ids = segment_ids + [0] * len(assistant_input_ids)
 
+        assert len(input_ids) == len(labels) and len(segment_ids) == len(input_ids), "process_xsum: Length mismatch between input_ids, labels, and segment_ids."
         return {
             "input_ids": input_ids,
             "labels": labels,
