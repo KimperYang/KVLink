@@ -810,7 +810,7 @@ class Qwen_SumAttentionPreprocessor():
 
         ans_id = self.tokenizer(example["generated"], add_special_tokens=False)["input_ids"]
         input_ids += ans_id + [self.eot_token_id]
-        segment_ids = segment_ids + [0] * len(ans_id)
+        segment_ids += [0] * (len(ans_id) + 1)
 
         ans_len = len(ans_id)
         input_len = len(input_ids)
