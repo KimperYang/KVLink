@@ -235,7 +235,7 @@ def main(config_name: str, use_wandb_for_log: bool = False):
 
     # build dataloader
     data_components = DATASET_MAPPING[task_config.dataset_version]
-    data_collator = BlockAttnCollator(pad_token_idx=tokenizer.pad_token)
+    data_collator = BlockAttnCollator(pad_token_idx=151643)
     preprocessor = Qwen_SumAttentionPreprocessor(
         tokenizer=tokenizer,
         max_len=task_config.seq_len,
