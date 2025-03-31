@@ -68,7 +68,7 @@ class SumAttentionPreprocessor():
         self.sft_system_input_id_list = [self.tokenizer("<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\n" + system_prompt + "<|eot_id|>", add_special_tokens=False)["input_ids"] for system_prompt in self.sft_system]
 
         self.qa_system = [
-            "You are an AI assistant. Use the provided documents to answer the user’s question. If the information is insufficient, acknowledge the gap or request clarification.",
+            "You are an AI assistant. Use the provided documents to answer the user's question. If the information is insufficient, acknowledge the gap or request clarification.",
             "You are an AI assistant. Always ground your answers in the retrieved documents and do not add unsupported details. If the documents lack sufficient information, indicate that.",
             "You are an AI assistant. Rely solely on the given documents for evidence when answering questions. When necessary, cite or paraphrase the document content accurately.",
             "You are an AI assistant. Base your replies on the retrieved documents, ensuring completeness and correctness. Ask for more details if the documents do not cover the question fully."
@@ -536,6 +536,409 @@ class SumAttentionPreprocessor():
         assistant_input_ids = (
             [self.mem_end, self.eot_token_id] + self.assistant_start_token_ids
             + ans_id
+        )
+
+        input_ids = input_ids + assistant_input_ids
+        labels = [-100] * (len(input_ids) - len(ans_id)) + ans_id
+        segment_ids = segment_ids + [0] * len(assistant_input_ids)
+
+        return {
+            "input_ids": input_ids,
+            "labels": labels,
+            "segment_ids": segment_ids
+        }
+
+
+class Qwen_SumAttentionPreprocessor():
+    '''
+    Apply one piece of memory to non-memory use samples to enable batch forward pass for calculating KV.
+    '''
+    def __init__(
+        self,
+        tokenizer: Union[LLaMA32Tokenizer, PreTrainedTokenizerBase],
+        max_len: int,
+        special_token_start: int,
+        mem_start: int,
+        mem_end: int,
+        reencode_num: int,
+        max_memory_num: int = 40,
+        qa_document_num: int = 10,
+    ) -> None:
+        self.tokenizer = tokenizer
+        self.max_len = max_len
+        self.special_token_start = special_token_start
+        self.mem_start = mem_start
+        self.mem_end = mem_end
+        self.reencode_num = reencode_num
+        self.max_memory_num = max_memory_num
+        self.qa_document_num = qa_document_num
+
+        if isinstance(tokenizer, LLaMA32Tokenizer):
+        # self.bos_token_id = self.tokenizer("<|begin_of_text|>")["input_ids"][0]
+            self.bos_token_id = self.tokenizer.bos_id
+            self.use_hf_tokenizer = False
+        else:
+            self.bos_token_id = self.tokenizer.bos_token_id
+            self.use_hf_tokenizer = True
+        self.prepare_preprocessor()
+
+    def prepare_preprocessor(self,):
+
+        self.sft_system = [
+            "You are an AI assistant. Provide helpful, accurate, and clear answers. When uncertain, explain your reasoning or request clarification.",
+            "You are an AI assistant. Focus on achieving the user's goal in each interaction. Use concise yet informative explanations.",
+            "You are an AI assistant. Speak clearly and stay consistent with prior statements. If you need more information, politely ask for it.",
+            "You are an AI assistant. Provide truthful, well-sourced information whenever possible. Acknowledge any limitations and avoid speculation if unsure."
+        ]
+        self.sft_system_input_id_list = [self.tokenizer("<|im_start|>system\n" + system_prompt + "<|im_end|>", add_special_tokens=False)["input_ids"] for system_prompt in self.sft_system]
+
+        self.qa_system = [
+            "You are an AI assistant. Use the provided documents to answer the user's question. If the information is insufficient, acknowledge the gap or request clarification.",
+            "You are an AI assistant. Always ground your answers in the retrieved documents and do not add unsupported details. If the documents lack sufficient information, indicate that.",
+            "You are an AI assistant. Rely solely on the given documents for evidence when answering questions. When necessary, cite or paraphrase the document content accurately.",
+            "You are an AI assistant. Base your replies on the retrieved documents, ensuring completeness and correctness. Ask for more details if the documents do not cover the question fully."
+        ]
+        self.qa_system_input_id_list = [self.tokenizer("<|im_start|>system\n" + system_prompt, add_special_tokens=False)["input_ids"] for system_prompt in self.qa_system]
+
+        self.summary_system = [
+            "You are an AI assistant. Read the provided text and produce a concise summary. Capture the main points without unnecessary detail.",
+            "You are an AI assistant. Summarize the essential ideas from the given text. Avoid minor details and focus on critical insights.",
+            "You are an AI assistant. Provide a brief, high-level overview of the text. Ensure clarity and coherence, prioritizing key themes.",
+            "You are an AI assistant. Summarize the text clearly and logically. Organize the main ideas in a coherent sequence."
+        ]
+        self.summary_system_input_id_list = [self.tokenizer("<|im_start|>system\n" + system_prompt + "<|im_end|>", add_special_tokens=False)["input_ids"] for system_prompt in self.summary_system]
+
+        user_start_tokens = "\n<|im_start|>user\n"
+        self.user_start_token_ids = self.tokenizer(
+            user_start_tokens, add_special_tokens=False
+        )["input_ids"]
+        self.eot_token_id = self.tokenizer("<|im_end|>", add_special_tokens=False)["input_ids"][0]
+        print("EOT id: ", self.eot_token_id)
+        assistant_start_tokens = "\n<|im_start|>assistant\n"
+        self.assistant_start_token_ids = self.tokenizer(
+            assistant_start_tokens, add_special_tokens=False
+        )["input_ids"]
+
+        self.all_memory_sum_tokens = [
+            [
+                self.special_token_start + idx * self.reencode_num + offset
+                for offset in range(self.reencode_num)
+            ]
+            for idx in range(self.max_memory_num)
+        ]
+
+    def process_sftmem(
+        self,
+        example: Dict[str, str],
+    ):
+        conversation = example['conversations']
+        input_texts = [conversation[i]["value"] for i in range(len(conversation))]
+        if self.use_hf_tokenizer:
+            all_conversation_texts_ids = self.tokenizer(
+                input_texts,
+                add_special_tokens=False,
+                padding=False,
+                truncation=False,
+                return_attention_mask=False,
+                return_token_type_ids=False,
+                return_offsets_mapping=False,
+                return_special_tokens_mask=False,
+                return_length=False,
+            )["input_ids"]
+        else:
+            all_conversation_texts_ids = [
+                self.tokenizer(x, add_special_tokens=False)["input_ids"] for x in input_texts
+            ]
+
+        sft_mem_system_input_ids = random.choice(self.sft_system_input_id_list)
+        input_ids = sft_mem_system_input_ids + [self.mem_start]
+        labels = [-100] * (len(sft_mem_system_input_ids) + 1)
+        segment_ids = [0] * (len(sft_mem_system_input_ids) + 1)
+
+        for idx in range(0, len(conversation) - 2, 2):
+            if (
+                conversation[idx]["from"] == "User" and
+                conversation[idx + 1]["from"] == "Assistant"
+            ):
+                chat_input_ids = (
+                    self.user_start_token_ids + all_conversation_texts_ids[idx]
+                    + [self.eot_token_id] + self.assistant_start_token_ids
+                    + all_conversation_texts_ids[idx + 1] + [self.eot_token_id]
+                )
+                chat_input_ids = chat_input_ids + self.all_memory_sum_tokens[int(idx / 2)]
+                input_ids = input_ids + chat_input_ids
+
+                mem_len = len(chat_input_ids)
+
+                chat_segment_ids = [(idx + 2) // 2] * (mem_len - self.reencode_num) + [0] * self.reencode_num
+                segment_ids = segment_ids + chat_segment_ids
+
+        last_q_input_ids = (
+            [self.mem_end] + self.user_start_token_ids + all_conversation_texts_ids[-2]
+            + [self.eot_token_id] + self.assistant_start_token_ids
+            + all_conversation_texts_ids[-1] + [self.eot_token_id]
+        )
+        last_q_segment_ids = [0] * len(last_q_input_ids)
+
+        input_ids = input_ids + last_q_input_ids
+        segment_ids = segment_ids + last_q_segment_ids
+
+        seq_len = len(input_ids)
+        ans_len = len(all_conversation_texts_ids[-1]) + 1
+        labels = (
+            [-100] * (seq_len - ans_len) + all_conversation_texts_ids[-1] + [self.eot_token_id]
+        )
+
+        return {
+            "input_ids": input_ids,
+            "labels": labels,
+            "segment_ids": segment_ids
+        }
+
+    def process_sft(
+        self,
+        example: Dict[str, str],
+    ):
+        conversation = example['conversations']
+        input_texts = [conversation[i]["value"] for i in range(len(conversation))]
+        if self.use_hf_tokenizer:
+            all_conversation_texts_ids = self.tokenizer(
+                input_texts,
+                add_special_tokens=False,
+                padding=False,
+                truncation=False,
+                return_attention_mask=False,
+                return_token_type_ids=False,
+                return_offsets_mapping=False,
+                return_special_tokens_mask=False,
+                return_length=False,
+            )["input_ids"]
+        else:
+            all_conversation_texts_ids = [
+                self.tokenizer(x, add_special_tokens=False)["input_ids"] for x in input_texts
+            ]
+        sft_system_input_ids = random.choice(self.sft_system_input_id_list)
+        input_ids = sft_system_input_ids
+        labels = [-100] * len(sft_system_input_ids)
+        for i in range(len(conversation)):
+            if conversation[i]["from"] == "User":
+                user_msg_input_ids = (
+                    self.user_start_token_ids + all_conversation_texts_ids[i]
+                    + [self.eot_token_id]
+                )
+                if len(labels) + len(user_msg_input_ids) >= self.max_len:
+                    break
+
+                labels.extend([-100] * len(user_msg_input_ids))
+                input_ids += user_msg_input_ids
+
+            # TODO (KVLinkDeveloper): Currently always stop with EOT if exceed the max length
+            # Should revise it so that it is not truncated and append an EOT.
+            # Just truncated at the max_len position is enough. Do not have to
+            # end with EOT
+            elif conversation[i]["from"] == "Assistant":
+                assist_msg_input_ids = (
+                    self.assistant_start_token_ids + all_conversation_texts_ids[i]
+                )
+                if len(labels) + len(assist_msg_input_ids) > self.max_len - 1:
+                    assist_msg_input_ids = input_ids[:self.max_len - 1 - len(labels)]
+
+                assist_msg_input_ids += [self.eot_token_id]
+                labels.extend(assist_msg_input_ids)
+                input_ids += assist_msg_input_ids
+
+        # No memory. So, the segment ids are just the same for all positions
+        segment_ids = [0] * len(input_ids)
+        return {
+            "input_ids": input_ids,
+            "labels": labels,
+            "segment_ids": segment_ids,
+        }
+
+    def process_text(
+        self,
+        example: Dict[str, str],
+    ):
+        text_tokens = self.tokenizer(example["text"])['input_ids'][:self.max_len]
+        labels = text_tokens
+        segment_ids = [0] * len(text_tokens)
+        return {
+            "input_ids": text_tokens,
+            "labels": labels,
+            "segment_ids": segment_ids,
+        }
+
+    def process_qamem(
+        self,
+        example: Dict[str, str],
+    ):
+        qa_system_input_ids = random.choice(self.qa_system_input_id_list)
+        input_ids = qa_system_input_ids[:] + [self.mem_start]
+        segment_ids = [0] * len(input_ids)
+
+        formated_input_text_list = [
+            f"Document [{j+1}](Title: {example['documents'][j]['title']}) "
+            f"{example['documents'][j]['text']}\n" for j in range(10)
+        ]
+        if self.use_hf_tokenizer:
+            formated_input_ids = self.tokenizer(
+                formated_input_text_list,
+                add_special_tokens=False,
+                padding=False,
+                truncation=False,
+                return_attention_mask=False,
+                return_token_type_ids=False,
+                return_offsets_mapping=False,
+                return_special_tokens_mask=False,
+                return_length=False,
+            )["input_ids"]
+        else:
+            formated_input_ids = [
+                self.tokenizer(x, add_special_tokens=False)["input_ids"]
+                for x in formated_input_text_list
+            ]
+
+        for idx in range(self.qa_document_num):
+            input_ids = input_ids + formated_input_ids[idx] + self.all_memory_sum_tokens[idx]
+            segment_ids = segment_ids + [idx + 1] * len(formated_input_ids[idx]) + [0] * self.reencode_num
+
+        user_input_ids = [self.mem_end] + [self.eot_token_id] + self.user_start_token_ids + self.tokenizer(example['question'], add_special_tokens=False)["input_ids"] + [self.eot_token_id] + self.assistant_start_token_ids
+        input_ids = input_ids + user_input_ids
+        segment_ids = segment_ids + [0] * len(user_input_ids)
+
+        ans_id = self.tokenizer(example["generated"], add_special_tokens=False)["input_ids"]
+        input_ids += ans_id + [self.eot_token_id]
+        segment_ids = segment_ids + [0] * len(ans_id)
+
+        ans_len = len(ans_id)
+        input_len = len(input_ids)
+
+        labels = [-100] * (input_len - ans_len) + ans_id
+
+        return {
+            "input_ids": input_ids,
+            "labels": labels,
+            "segment_ids": segment_ids,
+        }
+
+    def process_qa(
+        self,
+        example: Dict[str, str],
+    ):
+        qa_system_input_ids = random.choice(self.qa_system_input_id_list)
+        system_input_ids = qa_system_input_ids
+        input_ids = system_input_ids
+
+        for j in range(self.qa_document_num):
+            title = example['documents'][j]['title']
+            text = example['documents'][j]['text']
+            tem_id = self.tokenizer(f"Document [{j+1}](Title: {title}) {text}\n", add_special_tokens=False)["input_ids"]
+
+            input_ids += tem_id
+
+        user_input_ids = [self.eot_token_id] + self.user_start_token_ids + self.tokenizer(example['question'], add_special_tokens=False)["input_ids"] + [self.eot_token_id] + self.assistant_start_token_ids
+        input_ids += user_input_ids
+
+        ans_id = self.tokenizer(example['generated'], add_special_tokens=False)["input_ids"]
+        input_ids += ans_id + [self.eot_token_id]
+
+        ans_len = len(ans_id)
+        input_len = len(input_ids)
+
+        labels = [-100] * (input_len - ans_len) + ans_id
+
+        segment_ids = [0] * len(input_ids)
+
+        return {
+            "input_ids": input_ids,
+            "labels": labels,
+            "segment_ids": segment_ids
+        }
+
+    def process_tulu(
+        self,
+        example: Dict[str, str],
+    ):
+        conversation = example["messages"]
+        input_texts = [conversation[i]["content"] for i in range(len(conversation))]
+        if self.use_hf_tokenizer:
+            all_conversation_texts_ids = self.tokenizer(
+                input_texts,
+                add_special_tokens=False,
+                padding=False,
+                truncation=False,
+                return_attention_mask=False,
+                return_token_type_ids=False,
+                return_offsets_mapping=False,
+                return_special_tokens_mask=False,
+                return_length=False,
+            )["input_ids"]
+        else:
+            all_conversation_texts_ids = [
+                self.tokenizer(x, add_special_tokens=False)["input_ids"] for x in input_texts
+            ]
+
+        tulu_system_input_ids = random.choice(self.sft_system_input_id_list)
+        input_ids = tulu_system_input_ids
+        labels = [-100] * len(input_ids)
+
+        for i in range(len(conversation)):
+
+            if conversation[i]["role"] == "user":
+                user_msg_input_ids = (
+                    self.user_start_token_ids + all_conversation_texts_ids[i]
+                    + [self.eot_token_id]
+                )
+                if len(labels) + len(user_msg_input_ids) >= self.max_len:
+                    break
+
+                labels.extend([-100] * len(user_msg_input_ids))
+                input_ids += user_msg_input_ids
+
+            elif conversation[i]["role"] == "assistant":
+                assist_msg_input_ids = (
+                    self.assistant_start_token_ids + all_conversation_texts_ids[i]
+                )
+                if len(labels) + len(assist_msg_input_ids) > self.max_len - 1:
+                    assist_msg_input_ids = input_ids[:self.max_len - 1 - len(labels)]
+
+                assist_msg_input_ids += [self.eot_token_id]
+                labels.extend(assist_msg_input_ids)
+                input_ids += assist_msg_input_ids
+
+        segment_ids = [0] * len(input_ids)
+        return {
+            "input_ids": input_ids,
+            "labels": labels,
+            "segment_ids": segment_ids
+        }
+
+    def process_xsum(
+        self,
+        example: Dict[str, str],
+    ):
+        text_ids = self.tokenizer(example['document'], add_special_tokens=False)["input_ids"]
+        if len(text_ids) > 1900:
+            chunk_size = 220
+        else:
+            chunk_size = 100
+        chunks = [text_ids[i:i+chunk_size] for i in range(0, len(text_ids), chunk_size)]
+
+        xsum_system_input_ids = random.choice(self.summary_system_input_id_list)
+        input_ids = xsum_system_input_ids + self.user_start_token_ids + [self.mem_start]
+        segment_ids = [0] * len(input_ids)
+
+        for j in range(len(chunks)):
+            input_ids = input_ids + chunks[j] + self.all_memory_sum_tokens[j]
+            segment_ids = segment_ids + [j+1] * len(chunks[j]) + [0] * self.reencode_num
+
+        ans_id = self.tokenizer(
+            example['summary'],
+            add_special_tokens=False,
+        )["input_ids"]
+        assistant_input_ids = (
+            [self.mem_end, self.eot_token_id] + self.assistant_start_token_ids
+            + ans_id + [self.eot_token_id]
         )
 
         input_ids = input_ids + assistant_input_ids

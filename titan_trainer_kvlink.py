@@ -54,16 +54,17 @@ import torchtune.training as training
 import tqdm
 from torch.distributed.elastic.multiprocessing.errors import record
 from torch.utils.data import DataLoader
-from torchtune.models.llama3_2 import llama3_2_1b
+from torchtune.models.qwen2_5 import qwen2_5_14b_instruct
 from transformers import AutoTokenizer
 
 from src.data.titan_data_utils import (
-    SumAttentionPreprocessor,
+    Qwen_SumAttentionPreprocessor,
     build_hf_data_loader,
     build_hf_eval_data_loader,
 )
 from src.data.titan_preprocessor import BlockAttnCollator, make_segment_mask
 from src.data.titan_tokenizer import LLaMA32Tokenizer
+from src.model.resize import resize_output_projection, resize_token_embeddings
 from src.torchtitan import utils
 from src.torchtitan.logging import init_logger, logger
 from src.torchtitan.optimizer import build_lr_schedulers, build_optimizers
@@ -89,14 +90,14 @@ from src.training.titan_training_utils import (
     PRETRAINED_MODEL_CKPT_PATH_MAPS,
     SELECTIVE_ACTIVATION_CHECKPOINT_CONFIG,
     bsz64_lr56_steps6k,
-    bsz64_lr56_steps600
+    bsz64_lr56_steps600,
 )
 from src.training.torchtune_model_checkpointer import load_checkpoint
 
 CONFIG_DICT = {
     "data_original_step6k_bsz64_link_5_selective_ckpt": TitanTrainerConfig(
         model_name_or_path="meta-llama/Llama-3.2-1B-Instruct",
-        tokenizer_path="data/titan_tokenizer/original/tokenizer.model",
+        tokenizer_path="Qwen/Qwen2.5-14B-Instruct",
         dataset_version="original",
         seq_len=4096,
         reencode_num=5,
@@ -108,49 +109,13 @@ CONFIG_DICT = {
 
     "data_original_step6k_bsz64_link_5_full_ckpt": TitanTrainerConfig(
         model_name_or_path="meta-llama/Llama-3.2-1B-Instruct",
-        tokenizer_path="data/titan_tokenizer/original/tokenizer.model",
+        tokenizer_path="Qwen/Qwen2.5-14B-Instruct",
         dataset_version="original",
         seq_len=4096,
         reencode_num=5,
         job_dump_folder="run_logs/data_original_step6k_bsz64_link_5_full_ckpt",
         ckpt_config=COMMON_CHECKPOINT_CONFIG,
         training_recipe=bsz64_lr56_steps6k,
-        activation_checkpoint=FULL_ACTIVATION_CHECKPOINT_CONFIG,
-    ),
-
-    "data_nosum_step6k_bsz64_link_5_full_ckpt": TitanTrainerConfig(
-        model_name_or_path="meta-llama/Llama-3.2-1B-Instruct",
-        tokenizer_path="data/titan_tokenizer/original/tokenizer.model",
-        dataset_version="nosum",
-        seq_len=4096,
-        reencode_num=5,
-        job_dump_folder="run_logs/data_nosum_step6k_bsz64_link_5_full_ckpt",
-        ckpt_config=COMMON_CHECKPOINT_CONFIG,
-        training_recipe=bsz64_lr56_steps6k,
-        activation_checkpoint=FULL_ACTIVATION_CHECKPOINT_CONFIG,
-    ),
-
-    "data_nosftmem_step6k_bsz64_link_5_full_ckpt": TitanTrainerConfig(
-        model_name_or_path="meta-llama/Llama-3.2-1B-Instruct",
-        tokenizer_path="data/titan_tokenizer/original/tokenizer.model",
-        dataset_version="nosftmem",
-        seq_len=4096,
-        reencode_num=5,
-        job_dump_folder="run_logs/data_original_step6k_bsz64_link_5_full_ckpt",
-        ckpt_config=COMMON_CHECKPOINT_CONFIG,
-        training_recipe=bsz64_lr56_steps6k,
-        activation_checkpoint=FULL_ACTIVATION_CHECKPOINT_CONFIG,
-    ),
-
-    "data_qaonly_step6k_bsz64_link_5_full_ckpt": TitanTrainerConfig(
-        model_name_or_path="meta-llama/Llama-3.2-1B-Instruct",
-        tokenizer_path="data/titan_tokenizer/original/tokenizer.model",
-        dataset_version="qaonly",
-        seq_len=4096,
-        reencode_num=5,
-        job_dump_folder="run_logs/data_original_step6k_bsz64_link_5_full_ckpt",
-        ckpt_config=COMMON_CHECKPOINT_CONFIG,
-        training_recipe=bsz64_lr56_steps600,
         activation_checkpoint=FULL_ACTIVATION_CHECKPOINT_CONFIG,
     )
 }
@@ -224,21 +189,44 @@ def main(config_name: str, use_wandb_for_log: bool = False):
     )
     model_name = task_config.model_name_or_path
     tokenizer_path = task_config.tokenizer_path
+    tokenizer = AutoTokenizer.from_pretrained(tokenizer_path)
 
-    # build tokenizer
-    if use_hf_tokenizer:
-        tokenizer = LLaMA32Tokenizer(tokenizer_path)
-    else:
-        tokenizer = AutoTokenizer.from_pretrained("meta-llama/Llama-3.2-1B-Instruct")
+    logger.info(f"Building {model_name}...")
+    with torch.device("meta"):
+        model = qwen2_5_14b_instruct()
+    # log model size
+    model_param_count = utils.get_num_params(model)
+    logger.info(
+        f"{color.blue}Model {model_name}"
+        f"{color.red}size: {model_param_count:,} total parameters{color.reset}"
+    )
+
+    old_num_tokens, _ = model.tok_embeddings.weight.shape
+    special_token_start = old_num_tokens
+
+    model.tok_embeddings = resize_token_embeddings(model.tok_embeddings, task_config.reencode_num * 50 + 2)
+    model.output = resize_output_projection(model.output, task_config.reencode_num * 50 + 2)
+
+    new_num_tokens, _ = model.tok_embeddings.weight.shape
+    mem_start = new_num_tokens - 2
+    mem_end = new_num_tokens - 1
+
+    logger.info(
+        f"Resized model token embeddings from {old_num_tokens} to {new_num_tokens}."
+        f"Special token start: {special_token_start}, "
+        f"Memory start: {mem_start}, "
+        f"Memory end: {mem_end}"
+    )
+
     # build dataloader
     data_components = DATASET_MAPPING[task_config.dataset_version]
     data_collator = BlockAttnCollator(pad_token_idx=tokenizer.pad_id)
-    preprocessor = SumAttentionPreprocessor(
+    preprocessor = Qwen_SumAttentionPreprocessor(
         tokenizer=tokenizer,
         max_len=task_config.seq_len,
-        special_token_start=128011,
-        mem_start=128254,
-        mem_end=128255,
+        special_token_start=special_token_start,
+        mem_start=mem_start,
+        mem_end=mem_end,
         reencode_num=task_config.reencode_num,
         max_memory_num=task_config.max_memory_num,
     )
@@ -270,16 +258,6 @@ def main(config_name: str, use_wandb_for_log: bool = False):
             "Note: Packing mode enabled."
             "Dataset that supported packing will be packed instead of padded."
         )
-
-    logger.info(f"Building {model_name}...")
-    with torch.device("meta"):
-        model = llama3_2_1b()
-    # log model size
-    model_param_count = utils.get_num_params(model)
-    logger.info(
-        f"{color.blue}Model {model_name}"
-        f"{color.red}size: {model_param_count:,} total parameters{color.reset}"
-    )
 
     # loss function to be shared by Pipeline Parallel and SPMD training
     def loss_fn(pred, labels):

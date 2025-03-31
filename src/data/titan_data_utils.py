@@ -9,7 +9,7 @@ from src.data.titan_datasets import (
     load_data_and_process_fn,
 )
 from src.data.titan_preprocessor import (
-    SumAttentionPreprocessor,
+    Qwen_SumAttentionPreprocessor,
 )
 from src.data.titan_tokenizer import LLaMA32Tokenizer
 from src.training.titan_trainer_config_utils import (
@@ -20,7 +20,7 @@ from src.training.titan_trainer_config_utils import (
 def build_hf_data_loader(
     data_components: List[DataComponent],
     tokenizer: LLaMA32Tokenizer,
-    preprocessor: SumAttentionPreprocessor,
+    preprocessor: Qwen_SumAttentionPreprocessor,
     seed: int,
     batch_size: int,
     seq_len: int,
@@ -65,7 +65,7 @@ def build_hf_data_loader(
 def build_hf_eval_data_loader(
     data_components: List[DataComponent],
     tokenizer: LLaMA32Tokenizer,
-    preprocessor: SumAttentionPreprocessor,
+    preprocessor: Qwen_SumAttentionPreprocessor,
     batch_size: int,
     seq_len: int,
     world_size: int,
