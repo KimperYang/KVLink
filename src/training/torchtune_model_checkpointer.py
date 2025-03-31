@@ -21,7 +21,34 @@ MODEL_CONFIG_DICT = {
         "num_key_value_heads": 8,
         "hidden_size": 2048,
         "head_dim": 64,
-    }
+    },
+    "Qwen/Qwen2.5-14B-Instruct": {
+        "architectures": [
+            "Qwen2ForCausalLM"
+        ],
+        "attention_dropout": 0.0,
+        "bos_token_id": 151643,
+        "eos_token_id": 151645,
+        "hidden_act": "silu",
+        "hidden_size": 5120,
+        "initializer_range": 0.02,
+        "intermediate_size": 13824,
+        "max_position_embeddings": 32768,
+        "max_window_layers": 70,
+        "model_type": "qwen2",
+        "num_attention_heads": 40,
+        "num_hidden_layers": 48,
+        "num_key_value_heads": 8,
+        "rms_norm_eps": 1e-06,
+        "rope_theta": 1000000.0,
+        "sliding_window": 131072,
+        "tie_word_embeddings": False,
+        "torch_dtype": "bfloat16",
+        "transformers_version": "4.43.1",
+        "use_cache": True,
+        "use_sliding_window": False,
+        "vocab_size": 152064
+        }
 }
 
 # def load_checkpoint() -> Dict[str, Any]:
