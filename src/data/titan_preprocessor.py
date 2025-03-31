@@ -689,6 +689,8 @@ class Qwen_SumAttentionPreprocessor():
             [-100] * (seq_len - ans_len) + all_conversation_texts_ids[-1] + [self.eot_token_id]
         )
 
+        assert all(isinstance(x, int) for x in input_ids), "process_sftmem"
+
         return {
             "input_ids": input_ids,
             "labels": labels,
@@ -815,6 +817,8 @@ class Qwen_SumAttentionPreprocessor():
 
         labels = [-100] * (input_len - ans_len) + ans_id
 
+        assert all(isinstance(x, int) for x in input_ids), "process_qamem"
+
         return {
             "input_ids": input_ids,
             "labels": labels,
@@ -848,6 +852,8 @@ class Qwen_SumAttentionPreprocessor():
         labels = [-100] * (input_len - ans_len) + ans_id
 
         segment_ids = [0] * len(input_ids)
+
+        assert all(isinstance(x, int) for x in input_ids), "process_qa"
 
         return {
             "input_ids": input_ids,
@@ -907,6 +913,9 @@ class Qwen_SumAttentionPreprocessor():
                 input_ids += assist_msg_input_ids
 
         segment_ids = [0] * len(input_ids)
+
+        assert all(isinstance(x, int) for x in input_ids), "process_tulu"
+
         return {
             "input_ids": input_ids,
             "labels": labels,
