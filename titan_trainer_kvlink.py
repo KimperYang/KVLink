@@ -201,6 +201,21 @@ def main(config_name: str, use_wandb_for_log: bool = False):
         f"{color.red}size: {model_param_count:,} total parameters{color.reset}"
     )
 
+    # model.to_empty(device=init_device)
+    # with torch.no_grad():
+    #     model.init_weights(buffer_device=buffer_device)
+    with torch.no_grad():
+        ckpt_path = PRETRAINED_MODEL_CKPT_PATH_MAPS[task_config.model_name_or_path]
+        state_dict = load_checkpoint(ckpt_path=ckpt_path, model_name=task_config.model_name_or_path)
+        is_rank_0 = torch.distributed.get_rank() == 0
+        training.load_from_full_model_state_dict(
+            model=model,
+            full_sd=state_dict,
+            device=device_type,
+            is_rank_zero=is_rank_0,
+            strict=True,
+        )
+
     old_num_tokens, _ = model.tok_embeddings.weight.shape
     special_token_start = old_num_tokens
 
@@ -281,22 +296,6 @@ def main(config_name: str, use_wandb_for_log: bool = False):
             # RoPE is not covered in state dict
             if hasattr(m, "rope_init"):
                 m.rope_init()
-
-    # model.to_empty(device=init_device)
-    # with torch.no_grad():
-    #     model.init_weights(buffer_device=buffer_device)
-    with torch.no_grad():
-        ckpt_path = PRETRAINED_MODEL_CKPT_PATH_MAPS[task_config.model_name_or_path]
-        state_dict = load_checkpoint(ckpt_path=ckpt_path, model_name=task_config.model_name_or_path)
-        is_rank_0 = torch.distributed.get_rank() == 0
-        training.load_from_full_model_state_dict(
-            model=model,
-            full_sd=state_dict,
-            device=device_type,
-            is_rank_zero=is_rank_0,
-            strict=True,
-        )
-
 
     model.train()
 
