@@ -14,7 +14,7 @@ def resize_token_embeddings(old_tok_embeddings, num_new_tokens):
         dtype=old_tok_embeddings.weight.dtype)
 
     with torch.no_grad():
-        new_tok_embeddings.weight[:old_num_tokens] = old_tok_embeddings.weight
+        new_tok_embeddings.weight[:old_num_tokens, :] = old_tok_embeddings.weight
 
     return new_tok_embeddings
 
@@ -31,6 +31,6 @@ def resize_output_projection(old_output_proj, num_new_tokens):
         bias=False)
 
     with torch.no_grad():
-        new_output_proj.weight[:old_num_tokens] = old_output_proj.weight
+        new_output_proj.weight[:old_num_tokens, :] = old_output_proj.weight
 
     return new_output_proj

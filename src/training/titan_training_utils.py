@@ -73,7 +73,7 @@ bsz64_lr56_steps6k =replace(
     batch_size=64,
     max_steps=6000,
     warmup_steps=600,
-    eval_every_n_steps=500,
+    eval_every_n_steps=1000,
 )
 
 bsz64_lr56_steps600 =replace(

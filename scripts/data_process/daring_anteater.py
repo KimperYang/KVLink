@@ -34,7 +34,7 @@ def main(argv):
 
     def process_sft(conversation):
         # Extract "Assistant" responses and mask "User" queries
-        system = "[<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\nYou're an assistant who answer the question with the knowledge provided in the prompt<|eot_id|><|start_header_id|>user<|end_header_id|>\n\n"
+        system = "<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\nYou're an assistant who answer the question with the knowledge provided in the prompt<|eot_id|><|start_header_id|>user<|end_header_id|>\n\n"
         system_tokenized = tokenizer(system, add_special_tokens=False)
         system_input_ids = system_tokenized.input_ids
 

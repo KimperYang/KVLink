@@ -96,7 +96,7 @@ from src.training.torchtune_model_checkpointer import load_checkpoint
 
 CONFIG_DICT = {
     "data_original_step6k_bsz64_link_5_selective_ckpt": TitanTrainerConfig(
-        model_name_or_path="meta-llama/Llama-3.2-1B-Instruct",
+        model_name_or_path="Qwen/Qwen2.5-14B-Instruct",
         tokenizer_path="Qwen/Qwen2.5-14B-Instruct",
         dataset_version="original",
         seq_len=4096,
@@ -108,7 +108,7 @@ CONFIG_DICT = {
     ),
 
     "data_original_step6k_bsz64_link_5_full_ckpt": TitanTrainerConfig(
-        model_name_or_path="meta-llama/Llama-3.2-1B-Instruct",
+        model_name_or_path="Qwen/Qwen2.5-14B-Instruct",
         tokenizer_path="Qwen/Qwen2.5-14B-Instruct",
         dataset_version="original",
         seq_len=4096,
