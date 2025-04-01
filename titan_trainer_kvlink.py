@@ -213,8 +213,20 @@ def main(config_name: str, use_wandb_for_log: bool = False):
         world_mesh, device, common_cfg.seed, common_cfg.deterministic
     )
     model_name = task_config.model_name_or_path
+
     tokenizer_path = task_config.tokenizer_path
     tokenizer = AutoTokenizer.from_pretrained(tokenizer_path)
+
+    special_token_start = len(tokenizer)
+    max_memory_num = 40
+    new_special_tokens = [f"<link_{i}>" for i in range(max_memory_num * task_config.reencode_num)] + ["<mem_start>", "<mem_end>"]
+    special_tokens_dict = {"additional_special_tokens": new_special_tokens}
+
+    tokenizer.add_special_tokens(special_tokens_dict, replace_additional_special_tokens=False)
+
+    mem_start = len(tokenizer) - 2
+    mem_end = len(tokenizer) - 1
+
 
     logger.info(f"Building {model_name}...")
     with torch.device("meta"):
@@ -241,18 +253,15 @@ def main(config_name: str, use_wandb_for_log: bool = False):
             strict=True,
         )
 
-    old_num_tokens, _ = model.tok_embeddings.weight.shape
-    special_token_start = old_num_tokens
-
-    model.tok_embeddings = resize_token_embeddings(model.tok_embeddings, task_config.reencode_num * 50 + 2)
-    model.output = resize_output_projection(model.output, task_config.reencode_num * 50 + 2)
+    model.tok_embeddings = resize_token_embeddings(model.tok_embeddings, task_config.reencode_num * max_memory_num + 2)
+    model.output = resize_output_projection(model.output, task_config.reencode_num * max_memory_num + 2)
 
     new_num_tokens, _ = model.tok_embeddings.weight.shape
     mem_start = new_num_tokens - 2
     mem_end = new_num_tokens - 1
 
     logger.info(
-        f"Resized model token embeddings from {old_num_tokens} to {new_num_tokens}."
+        f"Resized model token embeddings from {special_token_start} to {new_num_tokens}."
         f"Special token start: {special_token_start}, "
         f"Memory start: {mem_start}, "
         f"Memory end: {mem_end}"

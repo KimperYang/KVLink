@@ -2,6 +2,7 @@ import argparse
 import json
 import random
 import sys
+import datasets
 from transformers import AutoTokenizer
 # If your Qwen_SumAttentionPreprocessor code is in qwen_preprocessor.py,
 # adjust this import statement accordingly:
@@ -69,9 +70,9 @@ def main():
     # args = parser.parse_args()
 
     # 1) Load the data from JSON
-    with open("dataset_cache/processed/block_qa/qa", "r", encoding="utf-8") as f:
-        data = json.load(f)
-
+    # with open("dataset_cache/processed/block_qa/qa", "r", encoding="utf-8") as f:
+    #     data = json.load(f)
+    qa_data = datasets.load_from_disk("dataset_cache/processed/block_qa/qa")['test']  # Adjust this to your dataset path
     # 2) Instantiate your tokenizer (if you have a custom one or HF’s)
     # tokenizer = AutoTokenizer.from_pretrained("some-tokenizer")
     # Or your LLaMA32Tokenizer etc.
@@ -88,12 +89,18 @@ def main():
         qa_document_num=10        # ...
     )
 
+    qa_data.map(
+        preprocessor.process_qa,
+        # num_proc=16,
+        batched=False,
+    )
+
     # 4) Test each process function for length consistency
     # test_length_consistency(data, preprocessor, "process_sftmem")
     # test_length_consistency(data, preprocessor, "process_sft")
     # test_length_consistency(data, preprocessor, "process_text")
-    test_length_consistency(data, preprocessor, "process_qamem")
-    test_length_consistency(data, preprocessor, "process_qa")
+    # test_length_consistency(data, preprocessor, "process_qamem")
+    # test_length_consistency(data, preprocessor, "process_qa")
     # test_length_consistency(data, preprocessor, "process_tulu")
     # test_length_consistency(data, preprocessor, "process_xsum")
 
