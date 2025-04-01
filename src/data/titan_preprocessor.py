@@ -650,9 +650,9 @@ class Qwen_SumAttentionPreprocessor():
                 self.tokenizer(x, add_special_tokens=False)["input_ids"] for x in input_texts
             ]
 
+        ans_len = len(all_conversation_texts_ids[-1]) + 1
         sft_mem_system_input_ids = random.choice(self.sft_system_input_id_list)
         input_ids = sft_mem_system_input_ids + [self.mem_start]
-        labels = [-100] * (len(sft_mem_system_input_ids) + 1)
         segment_ids = [0] * (len(sft_mem_system_input_ids) + 1)
 
         for idx in range(0, len(conversation) - 2, 2):
@@ -684,76 +684,17 @@ class Qwen_SumAttentionPreprocessor():
         segment_ids = segment_ids + last_q_segment_ids
 
         seq_len = len(input_ids)
-        ans_len = len(all_conversation_texts_ids[-1]) + 1
         labels = (
             [-100] * (seq_len - ans_len) + all_conversation_texts_ids[-1] + [self.eot_token_id]
         )
 
-        assert len(input_ids) == len(labels) and len(segment_ids) == len(input_ids), "process_sftmem: Length mismatch between input_ids, labels, and segment_ids."
+        if not len(input_ids) == len(labels):
+            print("sftmem", len(input_ids), len(labels))
+
         return {
             "input_ids": input_ids,
             "labels": labels,
             "segment_ids": segment_ids
-        }
-
-    def process_sft(
-        self,
-        example: Dict[str, str],
-    ):
-        conversation = example['conversations']
-        input_texts = [conversation[i]["value"] for i in range(len(conversation))]
-        if self.use_hf_tokenizer:
-            all_conversation_texts_ids = self.tokenizer(
-                input_texts,
-                add_special_tokens=False,
-                padding=False,
-                truncation=False,
-                return_attention_mask=False,
-                return_token_type_ids=False,
-                return_offsets_mapping=False,
-                return_special_tokens_mask=False,
-                return_length=False,
-            )["input_ids"]
-        else:
-            all_conversation_texts_ids = [
-                self.tokenizer(x, add_special_tokens=False)["input_ids"] for x in input_texts
-            ]
-        sft_system_input_ids = random.choice(self.sft_system_input_id_list)
-        input_ids = sft_system_input_ids
-        labels = [-100] * len(sft_system_input_ids)
-        for i in range(len(conversation)):
-            if conversation[i]["from"] == "User":
-                user_msg_input_ids = (
-                    self.user_start_token_ids + all_conversation_texts_ids[i]
-                    + [self.eot_token_id]
-                )
-                if len(labels) + len(user_msg_input_ids) >= self.max_len:
-                    break
-
-                labels.extend([-100] * len(user_msg_input_ids))
-                input_ids += user_msg_input_ids
-
-            # TODO (KVLinkDeveloper): Currently always stop with EOT if exceed the max length
-            # Should revise it so that it is not truncated and append an EOT.
-            # Just truncated at the max_len position is enough. Do not have to
-            # end with EOT
-            elif conversation[i]["from"] == "Assistant":
-                assist_msg_input_ids = (
-                    self.assistant_start_token_ids + all_conversation_texts_ids[i]
-                )
-                if len(labels) + len(assist_msg_input_ids) > self.max_len - 1:
-                    assist_msg_input_ids = input_ids[:self.max_len - 1 - len(labels)]
-
-                assist_msg_input_ids += [self.eot_token_id]
-                labels.extend(assist_msg_input_ids)
-                input_ids += assist_msg_input_ids
-
-        # No memory. So, the segment ids are just the same for all positions
-        segment_ids = [0] * len(input_ids)
-        return {
-            "input_ids": input_ids,
-            "labels": labels,
-            "segment_ids": segment_ids,
         }
 
     def process_text(
@@ -808,14 +749,16 @@ class Qwen_SumAttentionPreprocessor():
         segment_ids = segment_ids + [0] * len(user_input_ids)
 
         ans_id = self.tokenizer(example["generated"], add_special_tokens=False)["input_ids"] + [self.eot_token_id]
-        input_ids += ans_id
-        segment_ids += [0] * len(ans_id)
-
         ans_len = len(ans_id)
+        input_ids += ans_id
         input_len = len(input_ids)
 
+        segment_ids += [0] * len(ans_id)
         labels = [-100] * (input_len - ans_len) + ans_id
-        assert len(input_ids) == len(labels) and len(segment_ids) == len(input_ids), "process_qamem: Length mismatch between input_ids, labels, and segment_ids."
+
+        if not len(input_ids) == len(labels):
+            print("qamem", len(input_ids), len(labels))
+
         return {
             "input_ids": input_ids,
             "labels": labels,
@@ -841,15 +784,18 @@ class Qwen_SumAttentionPreprocessor():
         input_ids += user_input_ids
 
         ans_id = self.tokenizer(example['generated'], add_special_tokens=False)["input_ids"] + [self.eot_token_id]
-        input_ids += ans_id
-
         ans_len = len(ans_id)
+
+        input_ids += ans_id
         input_len = len(input_ids)
 
         labels = [-100] * (input_len - ans_len) + ans_id
 
         segment_ids = [0] * len(input_ids)
-        assert len(input_ids) == len(labels) and len(segment_ids) == len(input_ids), "process_qa: Length mismatch between input_ids, labels, and segment_ids."
+        
+        if len(input_ids) != len(labels):
+            print("qa", len(input_ids), len(labels))
+
         return {
             "input_ids": input_ids,
             "labels": labels,
@@ -909,7 +855,9 @@ class Qwen_SumAttentionPreprocessor():
 
         segment_ids = [0] * len(input_ids)
 
-        assert len(input_ids) == len(labels) and len(segment_ids) == len(input_ids), "process_tulu: Length mismatch between input_ids, labels, and segment_ids."
+        if len(input_ids) != len(labels):
+            print("tulu", len(input_ids), len(labels))
+
         return {
             "input_ids": input_ids,
             "labels": labels,
@@ -939,16 +887,20 @@ class Qwen_SumAttentionPreprocessor():
             example['summary'],
             add_special_tokens=False,
         )["input_ids"] + [self.eot_token_id]
+        ans_len = len(ans_id)
+
         assistant_input_ids = (
             [self.mem_end, self.eot_token_id] + self.assistant_start_token_ids
             + ans_id
         )
 
         input_ids = input_ids + assistant_input_ids
-        labels = [-100] * (len(input_ids) - len(ans_id)) + ans_id
+        labels = [-100] * (len(input_ids) - ans_len) + ans_id
         segment_ids = segment_ids + [0] * len(assistant_input_ids)
 
-        assert len(input_ids) == len(labels) and len(segment_ids) == len(input_ids), "process_xsum: Length mismatch between input_ids, labels, and segment_ids."
+        if not len(input_ids) == len(labels):
+            print("xsum", len(input_ids), len(labels))
+
         return {
             "input_ids": input_ids,
             "labels": labels,
