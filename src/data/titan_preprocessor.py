@@ -792,7 +792,7 @@ class Qwen_SumAttentionPreprocessor():
         labels = [-100] * (input_len - ans_len) + ans_id
 
         segment_ids = [0] * len(input_ids)
-        
+
         if len(input_ids) != len(labels):
             print("qa", len(input_ids), len(labels))
 
@@ -909,7 +909,7 @@ class Qwen_SumAttentionPreprocessor():
 
 @dataclass
 class BlockAttnCollator():
-    pad_token_idx: int = 124004
+    pad_token_idx: int
 
     def __call__(self, features: List[Dict[str, Any]]):
         input_ids = []
